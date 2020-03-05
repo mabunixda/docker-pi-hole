@@ -108,6 +108,6 @@ sed -i '/^WEBPASSWORD/d' /etc/pihole/setupVars.conf
 sed -i $'s/helpFunc() {/unsupportedFunc() {\\\n  echo "Function not supported in Docker images"\\\n  exit 0\\\n}\\\n\\\nhelpFunc() {/g' /usr/local/bin/pihole
 sed -i $'s/)\s*updatePiholeFunc/) unsupportedFunc/g' /usr/local/bin/pihole
 
-touch /.piholeFirstBoot
+touch /etc/pihole/.piholeFirstBoot
 
 echo 'Docker install successful'

@@ -5,7 +5,7 @@ export ServerIP
 export ServerIPv6
 export PYTEST
 export PHP_ENV_CONFIG
-export PHP_ERROR_LOG 
+export PHP_ERROR_LOG
 export HOSTNAME
 export WEBLOGDIR
 export DNS1
@@ -35,7 +35,7 @@ echo " ::: Starting docker specific checks & setup for docker pihole/pihole"
 docker_checks
 
 # TODO:
-#if [ ! -f /.piholeFirstBoot ] ; then
+#if [ ! -f /etc/pihole/.piholeFirstBoot ] ; then
 #    echo " ::: Not first container startup so not running docker's setup, re-create container to run setup again"
 #else
 #    regular_setup_functions
@@ -64,6 +64,6 @@ setup_lighttpd_bind "$ServerIP"
 setup_blocklists
 test_configs
 
-[ -f /.piholeFirstBoot ] && rm /.piholeFirstBoot
+[ -f /etc/pihole/.piholeFirstBoot ] && rm /etc/pihole/.piholeFirstBoot
 
 echo " ::: Docker start setup complete"

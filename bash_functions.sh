@@ -48,7 +48,7 @@ prepare_configs() {
     # Also  similar to preflights for FTL https://github.com/pi-hole/pi-hole/blob/master/advanced/Templates/pihole-FTL.service
     chown pihole:root /etc/lighttpd
     chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" "/var/log/pihole" "${regexFile}"
-    chmod 644 "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" 
+    chmod 644 "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
     # not sure why pihole:pihole user/group write perms are not enough for web to write...dirty fix:
     chmod 777 "${regexFile}"
     touch /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
@@ -60,7 +60,7 @@ prepare_configs() {
     # Update version numbers
     pihole updatechecker
     # Re-write all of the setupVars to ensure required ones are present (like QUERY_LOGGING)
-    
+
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
@@ -117,13 +117,13 @@ setup_dnsmasq_dns() {
     fi;
 
     # TODO With the addition of this to /start.sh this needs a refactor
-    if [ ! -f /.piholeFirstBoot ] ; then
+    if [ ! -f /etc/pihole/.piholeFirstBoot ] ; then
         local setupDNS1="$(grep 'PIHOLE_DNS_1' ${setupVars})"
         local setupDNS2="$(grep 'PIHOLE_DNS_2' ${setupVars})"
         setupDNS1="${setupDNS1/PIHOLE_DNS_1=/}"
         setupDNS2="${setupDNS2/PIHOLE_DNS_2=/}"
         if [[ -n "$DNS1" && -n "$setupDNS1"  ]] || \
-           [[ -n "$DNS2" && -n "$setupDNS2"  ]] ; then 
+           [[ -n "$DNS2" && -n "$setupDNS2"  ]] ; then
                 echo "Docker DNS variables not used"
         fi
         echo "Existing DNS servers used (${setupDNS1:-unset} & ${setupDNS2:-unset})"
@@ -174,9 +174,9 @@ setup_dnsmasq() {
     local dns2="$2"
     local interface="$3"
     local dnsmasq_listening_behaviour="$4"
-    # Coordinates 
+    # Coordinates
     setup_dnsmasq_config_if_missing
-    setup_dnsmasq_dns "$dns1" "$dns2" 
+    setup_dnsmasq_dns "$dns1" "$dns2"
     setup_dnsmasq_interface "$interface"
     setup_dnsmasq_listening_behaviour "$dnsmasq_listening_behaviour"
     setup_dnsmasq_user "${DNSMASQ_USER}"
@@ -269,7 +269,7 @@ setup_web_port() {
     # Quietly exit early for empty or default
     if [[ -z "${1}" || "${1}" == '80' ]] ; then return ; fi
 
-    if ! echo $1 | grep -q '^[0-9][0-9]*$' ; then 
+    if ! echo $1 | grep -q '^[0-9][0-9]*$' ; then
         echo "$warning - $1 is not an integer"
         return
     fi
@@ -342,7 +342,7 @@ test_configs() {
 
 
 setup_blocklists() {
-    local blocklists="$1"   
+    local blocklists="$1"
     # Exit/return early without setting up adlists with defaults for any of the following conditions:
     # 1. skip_setup_blocklists env is set
     exit_string="(exiting ${FUNCNAME[0]} early)"
