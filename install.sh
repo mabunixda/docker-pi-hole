@@ -102,3 +102,4 @@ sed -i $'s/)\s*updatePiholeFunc/) unsupportedFunc/g' /usr/local/bin/pihole
 touch /etc/pihole/.piholeFirstBoot
 
 echo 'Docker install successful'
+
