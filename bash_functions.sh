@@ -2,31 +2,6 @@
 # Some of the bash_functions use variables these core pi-hole/web scripts
 . /opt/pihole/webpage.sh
 
-docker_checks() {
-    warn_msg='WARNING Misconfigured DNS in /etc/resolv.conf'
-    ns_count="$(grep -c nameserver /etc/resolv.conf)"
-    ns_primary="$(grep nameserver /etc/resolv.conf | head -1)"
-    ns_primary="${ns_primary/nameserver /}"
-    warned=false
-
-    if [ "$ns_count" -lt 2 ] ; then
-        echo "$warn_msg: Two DNS servers are recommended, 127.0.0.1 and any backup server"
-        warned=true
-    fi
-
-    if [ "$ns_primary" != "127.0.0.1" ] ; then
-        echo "$warn_msg: Primary DNS should be 127.0.0.1 (found ${ns_primary})"
-        warned=true
-    fi
-
-    if ! $warned ; then
-        echo "OK: Checks passed for /etc/resolv.conf DNS servers"
-    fi
-
-    echo
-    cat /etc/resolv.conf
-}
-
 fix_capabilities() {
     setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+ei $(which pihole-FTL) || ret=$?
 
@@ -63,31 +38,15 @@ prepare_configs() {
 
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
-        # update the variables in the file
-        local USERWEBPASSWORD="${WEBPASSWORD}"
-        . "${setupVars}"
-        # Stash and pop the user password to avoid setting the password to the hashed setupVar variable
-        WEBPASSWORD="${USERWEBPASSWORD}"
-        # Clean up old before re-writing the required setupVars
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
+        cp -f "${setupVars}" "${setupVars}.update.bak"
     fi
-    # echo the information to the user
-    {
-    echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-    echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-    echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
-    echo "QUERY_LOGGING=${QUERY_LOGGING}"
-    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
-    echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-    echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
-    }>> "${setupVars}"
 }
 
 validate_env() {
     # Optional ServerIP is a valid IP
     # nc won't throw any text based errors when it times out connecting to a valid IP, otherwise it complains about the DNS name being garbage
     # if nc doesn't behave as we expect on a valid IP the routing table should be able to look it up and return a 0 retcode
-    if [[ "$(nc -4 -w1 -z "$ServerIP" 53 2>&1)" != "" ]] || ! ip route get "$ServerIP" > /dev/null ; then
+    if [[ "$(nc -4 -w1 -z "$ServerIP" 53 2>&1)" != "" ]] && ! ip route get "$ServerIP" > /dev/null ; then
         echo "ERROR: ServerIP Environment variable ($ServerIP) doesn't appear to be a valid IPv4 address"
         exit 1
     fi
@@ -99,7 +58,7 @@ validate_env() {
             unset ServerIPv6
             exit 1
         fi
-        if [[ "$(nc -6 -w1 -z "$ServerIPv6" 53 2>&1)" != "" ]] || ! ip route get "$ServerIPv6" > /dev/null ; then
+        if [[ "$(nc -6 -w1 -z "$ServerIPv6" 53 2>&1)" != "" ]] && ! ip route get "$ServerIPv6" > /dev/null ; then
             echo "ERROR: ServerIPv6 Environment variable ($ServerIPv6) doesn't appear to be a valid IPv6 address"
             echo "  TIP: If your server is not IPv6 enabled just remove '-e ServerIPv6' from your docker container"
             exit 1
@@ -237,7 +196,7 @@ setup_dnsmasq_hostnames() {
 setup_lighttpd_bind() {
     local serverip="$1"
     # if using '--net=host' only bind lighttpd on $ServerIP and localhost
-    if grep -q "docker" /proc/net/dev ; then #docker (docker0 by default) should only be present on the host system
+    if grep -q "docker" /proc/net/dev && [[ $serverip != 0.0.0.0 ]]; then #docker (docker0 by default) should only be present on the host system
         if ! grep -q "server.bind" /etc/lighttpd/lighttpd.conf ; then # if the declaration is already there, don't add it again
             sed -i -E "s/server\.port\s+\=\s+([0-9]+)/server.bind\t\t = \"${serverip}\"\nserver.port\t\t = \1\n"\$SERVER"\[\"socket\"\] == \"127\.0\.0\.1:\1\" \{\}/" /etc/lighttpd/lighttpd.conf
         fi
@@ -345,7 +304,6 @@ test_configs() {
     echo "::: All config checks passed, cleared for startup ..."
 }
 
-
 setup_blocklists() {
     local blocklists="$1"
     # Exit/return early without setting up adlists with defaults for any of the following conditions:
@@ -385,3 +343,32 @@ setup_var_exists() {
     fi
 }
 
+setup_temp_unit() {
+  local UNIT="$1"
+  # check if var is empty
+  if [[ "$UNIT" != "" ]] ; then
+      # check if we have valid units
+      if [[ "$UNIT" == "c" || "$UNIT" == "k" || $UNIT == "f" ]] ; then
+          pihole -a -${UNIT}
+      fi
+  fi
+}
+
+setup_ui_layout() {
+  local LO=$1
+  # check if var is empty
+  if [[ "$LO" != "" ]] ; then
+      # check if we have valid types boxed | traditional
+      if [[ "$LO" == "traditional" || "$LO" == "boxed" ]] ; then
+          change_setting "WEBUIBOXEDLAYOUT" "$WEBUIBOXEDLAYOUT"
+      fi
+  fi
+}
+
+setup_admin_email() {
+  local EMAIL=$1
+  # check if var is empty
+  if [[ "$EMAIL" != "" ]] ; then
+      pihole -a -e "$EMAIL"
+  fi
+}
